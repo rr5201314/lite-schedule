@@ -18,11 +18,11 @@ val hasReleaseKey = keystorePropsFile.exists() &&
     !keystoreProps.getProperty("storeFile", "").isNullOrBlank()
 
 android {
-    namespace = "com.gpnu.wakeuplite"
+    namespace = "io.github.rr5201314.liteschedule"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.gpnu.wakeuplite"
+        applicationId = "io.github.rr5201314.liteschedule"
         minSdk = 26
         targetSdk = 35
         versionCode = 1

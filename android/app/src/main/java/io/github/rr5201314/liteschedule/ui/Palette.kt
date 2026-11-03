@@ -1,4 +1,4 @@
-package com.gpnu.wakeuplite.ui
+package io.github.rr5201314.liteschedule.ui
 
 /**
  * 全局配色。

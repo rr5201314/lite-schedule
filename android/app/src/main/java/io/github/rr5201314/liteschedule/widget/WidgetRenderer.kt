@@ -1,4 +1,4 @@
-package com.gpnu.wakeuplite.widget
+package io.github.rr5201314.liteschedule.widget
 
 import android.content.Context
 import android.graphics.Bitmap
@@ -6,9 +6,9 @@ import android.graphics.Canvas
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
-import com.gpnu.wakeuplite.data.Course
-import com.gpnu.wakeuplite.ui.Palette
-import com.gpnu.wakeuplite.data.Snapshot
+import io.github.rr5201314.liteschedule.data.Course
+import io.github.rr5201314.liteschedule.ui.Palette
+import io.github.rr5201314.liteschedule.data.Snapshot
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import kotlin.math.max

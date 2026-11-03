@@ -1,4 +1,4 @@
-package com.gpnu.wakeuplite.widget
+package io.github.rr5201314.liteschedule.widget
 
 import android.app.PendingIntent
 import android.appwidget.AppWidgetManager
@@ -10,9 +10,9 @@ import android.net.Uri
 import android.os.Build
 import android.util.SizeF
 import android.widget.RemoteViews
-import com.gpnu.wakeuplite.MainActivity
-import com.gpnu.wakeuplite.R
-import com.gpnu.wakeuplite.data.Store
+import io.github.rr5201314.liteschedule.MainActivity
+import io.github.rr5201314.liteschedule.R
+import io.github.rr5201314.liteschedule.data.Store
 
 /**
  * 桌面小组件：整周课表（可在组件内上下滚动）。
@@ -80,7 +80,7 @@ class TodayWidgetProvider : AppWidgetProvider() {
                 else -> 250
             }
             val wPx = (wDp * density).toInt().coerceIn(200, 2400)
-            android.util.Log.i("WakeupLiteWidget", "id=$id width=${wPx}px")
+            android.util.Log.i("LiteScheduleWidget", "id=$id width=${wPx}px")
 
             val views = RemoteViews(ctx.packageName, R.layout.widget_today)
             val serviceIntent = Intent(ctx, WidgetBitmapService::class.java).apply {

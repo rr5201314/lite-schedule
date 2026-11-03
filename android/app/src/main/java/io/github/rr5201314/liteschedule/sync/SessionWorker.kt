@@ -1,4 +1,4 @@
-package com.gpnu.wakeuplite.sync
+package io.github.rr5201314.liteschedule.sync
 
 import android.content.Context
 import androidx.work.Constraints
@@ -8,8 +8,8 @@ import androidx.work.NetworkType
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
-import com.gpnu.wakeuplite.data.SessionKeeper
-import com.gpnu.wakeuplite.data.Store
+import io.github.rr5201314.liteschedule.data.SessionKeeper
+import io.github.rr5201314.liteschedule.data.Store
 import java.util.concurrent.TimeUnit
 
 /**

@@ -1,11 +1,11 @@
-package com.gpnu.wakeuplite.notify
+package io.github.rr5201314.liteschedule.notify
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.content.Context
 import androidx.core.app.NotificationCompat
-import com.gpnu.wakeuplite.R
-import com.gpnu.wakeuplite.data.Change
+import io.github.rr5201314.liteschedule.R
+import io.github.rr5201314.liteschedule.data.Change
 
 object Notifier {
 

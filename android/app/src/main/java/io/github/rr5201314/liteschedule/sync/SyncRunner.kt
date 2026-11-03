@@ -1,13 +1,13 @@
-package com.gpnu.wakeuplite.sync
+package io.github.rr5201314.liteschedule.sync
 
 import android.content.Context
-import com.gpnu.wakeuplite.data.CalendarResolver
-import com.gpnu.wakeuplite.data.Change
-import com.gpnu.wakeuplite.data.Diff
-import com.gpnu.wakeuplite.data.Store
-import com.gpnu.wakeuplite.data.ZfClient
-import com.gpnu.wakeuplite.notify.Notifier
-import com.gpnu.wakeuplite.widget.TodayWidgetProvider
+import io.github.rr5201314.liteschedule.data.CalendarResolver
+import io.github.rr5201314.liteschedule.data.Change
+import io.github.rr5201314.liteschedule.data.Diff
+import io.github.rr5201314.liteschedule.data.Store
+import io.github.rr5201314.liteschedule.data.ZfClient
+import io.github.rr5201314.liteschedule.notify.Notifier
+import io.github.rr5201314.liteschedule.widget.TodayWidgetProvider
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 

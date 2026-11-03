@@ -1,12 +1,12 @@
-package com.gpnu.wakeuplite.widget
+package io.github.rr5201314.liteschedule.widget
 
 import android.widget.RemoteViews
 import android.content.Context
 import android.content.Intent
 import android.graphics.Bitmap
 import android.widget.RemoteViewsService
-import com.gpnu.wakeuplite.R
-import com.gpnu.wakeuplite.data.Store
+import io.github.rr5201314.liteschedule.R
+import io.github.rr5201314.liteschedule.data.Store
 import java.time.LocalDate
 
 /**

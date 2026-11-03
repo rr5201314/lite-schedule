@@ -1,4 +1,4 @@
-package com.gpnu.wakeuplite.login
+package io.github.rr5201314.liteschedule.login
 
 import android.app.Activity
 import android.content.Intent
@@ -11,8 +11,8 @@ import android.webkit.WebViewClient
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.Toast
-import com.gpnu.wakeuplite.data.Store
-import com.gpnu.wakeuplite.data.ZfClient
+import io.github.rr5201314.liteschedule.data.Store
+import io.github.rr5201314.liteschedule.data.ZfClient
 
 /**
  * 内嵌 WebView 登录：走学校统一认证，登录成功后从 CookieManager 取正方会话。
@@ -93,7 +93,7 @@ class LoginActivity : Activity() {
             CookieManager.getInstance().flush()
             Store.setCookie(this, header)
         Store.setSessionState(this, "alive")
-            Log.i("WakeupLiteLogin", "saved cookies: " + cookies.keys.joinToString(","))
+            Log.i("LiteScheduleLogin", "saved cookies: " + cookies.keys.joinToString(","))
             Toast.makeText(this, "登录态已保存（${cookies.size} 个 cookie）", Toast.LENGTH_SHORT).show()
             setResult(RESULT_OK, Intent())
             finish()
@@ -102,7 +102,7 @@ class LoginActivity : Activity() {
 
         if (showFailure) {
             Toast.makeText(this, "还没拿到教务会话，请确认已进入课表页面", Toast.LENGTH_LONG).show()
-            Log.w("WakeupLiteLogin", "no cookies at any probe url")
+            Log.w("LiteScheduleLogin", "no cookies at any probe url")
         }
     }
 
