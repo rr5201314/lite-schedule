@@ -22,8 +22,9 @@ const gradleBat =
   process.env.GRADLE_BAT ||
   "C:/Users/16015/.gradle/wrapper/dists/gradle-8.11.1-bin/bpt9gzteqjrbo1mjrsomdt32c/gradle-8.11.1/bin/gradle.bat";
 
-const sh = (cmd, cwd = root) =>
-  execSync(cmd, { cwd, stdio: "inherit", shell: "cmd.exe" }).toString();
+const sh = (cmd, cwd = root) => {
+  execSync(cmd, { cwd, stdio: "inherit", shell: "cmd.exe" });
+};
 
 // 1) 版本号
 const gradlePath = join(root, "android/app/build.gradle.kts");
