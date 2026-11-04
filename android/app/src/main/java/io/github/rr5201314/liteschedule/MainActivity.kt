@@ -139,6 +139,10 @@ private fun AppScreen() {
     var sessionState by remember { mutableStateOf(Store.getSessionState(ctx)) }
     var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
     var checkingUpdate by remember { mutableStateOf(false) }
+    var archive by remember { mutableStateOf(Store.loadArchive(ctx)) }
+    var viewTerm by remember { mutableStateOf<String?>(null) }
+    var showTermPicker by remember { mutableStateOf(false) }
+    var syncingHistory by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val today = LocalDate.now()
@@ -229,7 +233,13 @@ private fun AppScreen() {
         }
     }
 
-    val monday = if (week1 > 0) LocalDate.ofEpochDay(week1).plusWeeks((currentWeek - 1).toLong()) else null
+    // 看历史学期时用存档里的快照，否则用当前学期的
+    val shownSnapshot: Snapshot? = viewTerm
+        ?.let { key -> archive.firstOrNull { Store.termKey(it.xnm, it.xqm) == key } }
+        ?: snapshot
+    val historyMode = viewTerm != null
+
+    val monday = if (!historyMode && week1 > 0) LocalDate.ofEpochDay(week1).plusWeeks((currentWeek - 1).toLong()) else null
 
     val runSync: () -> Unit = {
         if (Store.getCookie(ctx) == null) {
@@ -266,15 +276,21 @@ private fun AppScreen() {
                                 color = Color(Palette.TEXT_PRIMARY)
                             )
                             Text(
-                                if (syncing) "正在同步…"
-                                else if (sessionState == "expired") "登录已过期，点 ⋮ 重新登录"
-                                else "2026-2027 第一学期" + (monday?.let { " · " + it.format(MMDD) + " 起" } ?: ""),
+                                when {
+                                    syncing -> "正在同步…"
+                                    sessionState == "expired" -> "登录已过期，点 ⋮ 重新登录"
+                                    historyMode -> "历史学期 · 点这里切换"
+                                    else -> (shownSnapshot?.semesterLabel ?: "还没有学期数据") +
+                                        (monday?.let { " · " + it.format(MMDD) + " 起" } ?: "")
+                                },
                                 fontSize = 10.sp,
                                 color = when {
                                     syncing -> Color(Palette.ACCENT)
                                     sessionState == "expired" -> Color(0xFFB3261E)
+                                    historyMode -> Color(Palette.ACCENT)
                                     else -> Color(Palette.TEXT_MUTED)
-                                }
+                                },
+                                modifier = Modifier.clickableNoRipple { showTermPicker = true }
                             )
                         }
                         // 翻到别的周时给一个回本周的入口
@@ -334,6 +350,19 @@ private fun AppScreen() {
                                         }
                                     }
                                 })
+                                DropdownMenuItem(text = { Text(if (syncingHistory) "正在拉取历史…" else "拉取历史学期") }, onClick = {
+                                    menuOpen = false
+                                    if (!syncingHistory) {
+                                        syncingHistory = true
+                                        scope.launch {
+                                            val (count, msg) = SyncRunner.syncAllSemesters(ctx)
+                                            syncingHistory = false
+                                            archive = Store.loadArchive(ctx)
+                                            Toast.makeText(ctx, msg, Toast.LENGTH_LONG).show()
+                                            if (count > 0) showTermPicker = true
+                                        }
+                                    }
+                                })
                                 DropdownMenuItem(text = { Text("校准当前周") }, onClick = {
                                     menuOpen = false; showCalibrate = true
                                 })
@@ -382,7 +411,7 @@ private fun AppScreen() {
                         val pageMonday = if (week1 > 0) {
                             LocalDate.ofEpochDay(week1).plusWeeks((pageWeek - 1).toLong())
                         } else null
-                        WeekGrid(snapshot, pageWeek, pageMonday, today, Modifier.fillMaxSize()) { course -> detailCourse = course }
+                        WeekGrid(shownSnapshot, pageWeek, pageMonday, today, Modifier.fillMaxSize()) { course -> detailCourse = course }
                     }
                 }
             }
@@ -399,6 +428,54 @@ private fun AppScreen() {
         Spacer(Modifier.height(6.dp))
         BottomNav(current = tab, onSelect = { tab = it })
     }
+    if (showTermPicker) {
+        val currentKey = snapshot?.let { Store.termKey(it.xnm, it.xqm) }
+        val options = ArrayList<Pair<String, String>>()
+        snapshot?.let { options.add(Store.termKey(it.xnm, it.xqm) to (it.semesterLabel + "（当前学期）")) }
+        archive.forEach { a ->
+            val k = Store.termKey(a.xnm, a.xqm)
+            if (k != currentKey) options.add(k to (a.semesterLabel + " · " + a.courses.size + " 门课"))
+        }
+        AlertDialog(
+            onDismissRequest = { showTermPicker = false },
+            title = { Text("选择学期", fontSize = 17.sp) },
+            text = {
+                if (options.isEmpty()) {
+                    Text("还没有历史课表。先在右上角 ⋮ 里点「拉取历史学期」。", fontSize = 12.sp)
+                } else {
+                    LazyColumn(Modifier.heightIn(max = 380.dp)) {
+                        items(options) { entry ->
+                            val key = entry.first
+                            val selected = if (viewTerm == null) key == currentKey else key == viewTerm
+                            Column(
+                                Modifier.fillMaxWidth()
+                                    .clickableNoRipple {
+                                        viewTerm = if (key == currentKey) null else key
+                                        showTermPicker = false
+                                        scope.launch {
+                                            val target = if (viewTerm == null) {
+                                                (Store.currentWeek(ctx) - 1).coerceIn(0, MAX_WEEKS - 1)
+                                            } else 0
+                                            pagerState.scrollToPage(target)
+                                        }
+                                    }
+                                    .padding(vertical = 9.dp)
+                            ) {
+                                Text(
+                                    entry.second,
+                                    fontSize = 13.sp,
+                                    color = if (selected) Color(Palette.ACCENT) else Color(Palette.TEXT_PRIMARY),
+                                    fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+                                )
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showTermPicker = false }) { Text("关闭") } }
+        )
+    }
+
     updateInfo?.let { info ->
         AlertDialog(
             onDismissRequest = { updateInfo = null },

@@ -4,6 +4,7 @@ import android.content.Context
 import io.github.rr5201314.liteschedule.data.CalendarResolver
 import io.github.rr5201314.liteschedule.data.Change
 import io.github.rr5201314.liteschedule.data.Diff
+import io.github.rr5201314.liteschedule.data.Period
 import io.github.rr5201314.liteschedule.data.Store
 import io.github.rr5201314.liteschedule.data.ZfClient
 import io.github.rr5201314.liteschedule.notify.Notifier
@@ -64,4 +65,30 @@ object SyncRunner {
             Outcome(false, if (needLogin) "登录已过期，点右上角 ⋮ → 登录教务 重新登录一次" else "同步失败：$msg")
         }
     }
+
+    /**
+     * 把所有学期的课表一次性拉回来存档（登录后跑一次就够，之后只更新当前学期）。
+     * 返回 (成功保存的学期数, 提示文案)。
+     */
+    suspend fun syncAllSemesters(ctx: Context): Pair<Int, String> = withContext(Dispatchers.IO) {
+        val cookie = Store.getCookie(ctx) ?: return@withContext 0 to "还没登录教务"
+        runCatching {
+            val page = ZfClient.get(cookie, ZfClient.KB_PAGE)
+            val all = ZfClient.parseTermOptions(page)
+            if (all.isEmpty()) return@runCatching 0 to "没解析到学期列表"
+
+            // 只回看最近 6 年，避免一次打上百个请求
+            val thisYear = java.time.LocalDate.now().year
+            val terms = all.filter { (y, _) -> y.toIntOrNull()?.let { it >= thisYear - 6 } == true }
+            val periodsCache = mutableMapOf<String, List<Period>>()
+            var saved = 0
+            for ((y, t) in terms) {
+                val snap = runCatching { ZfClient.fetchTimetableFor(cookie, y, t, periodsCache) }.getOrNull() ?: continue
+                Store.upsertArchive(ctx, snap)
+                saved++
+            }
+            saved to "已保存 $saved 个学期的课表"
+        }.getOrElse { 0 to ("拉取失败：" + (it.message ?: "未知错误")) }
+    }
+
 }
