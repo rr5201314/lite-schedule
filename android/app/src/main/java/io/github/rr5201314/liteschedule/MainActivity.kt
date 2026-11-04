@@ -142,6 +142,7 @@ private fun AppScreen() {
     var archive by remember { mutableStateOf(Store.loadArchive(ctx)) }
     var viewTerm by remember { mutableStateOf<String?>(null) }
     var showTermPicker by remember { mutableStateOf(false) }
+    var showWeekPicker by remember { mutableStateOf(false) }
     var syncingHistory by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -270,28 +271,65 @@ private fun AppScreen() {
                 Column(Modifier.fillMaxSize().padding(horizontal = 12.dp, vertical = 10.dp)) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Column(Modifier.weight(1f)) {
-                            Text(
-                                "第 $currentWeek 周",
-                                fontSize = 20.sp, fontWeight = FontWeight.Bold,
-                                color = Color(Palette.TEXT_PRIMARY)
-                            )
-                            Text(
-                                when {
-                                    syncing -> "正在同步…"
-                                    sessionState == "expired" -> "登录已过期，点 ⋮ 重新登录"
-                                    historyMode -> "历史学期 · 点这里切换"
-                                    else -> (shownSnapshot?.semesterLabel ?: "还没有学期数据") +
-                                        (monday?.let { " · " + it.format(MMDD) + " 起" } ?: "")
-                                },
-                                fontSize = 10.sp,
-                                color = when {
-                                    syncing -> Color(Palette.ACCENT)
-                                    sessionState == "expired" -> Color(0xFFB3261E)
-                                    historyMode -> Color(Palette.ACCENT)
-                                    else -> Color(Palette.TEXT_MUTED)
-                                },
-                                modifier = Modifier.clickableNoRipple { showTermPicker = true }
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickableNoRipple { showWeekPicker = true }
+                            ) {
+                                Text(
+                                    "第 $currentWeek 周",
+                                    fontSize = 20.sp, fontWeight = FontWeight.Bold,
+                                    color = Color(Palette.TEXT_PRIMARY)
+                                )
+                                Spacer(Modifier.width(4.dp))
+                                Text("▾", fontSize = 12.sp, color = Color(Palette.ACCENT))
+                            }
+                            when {
+                                syncing -> Text(
+                                    "正在同步…", fontSize = 10.sp, color = Color(Palette.ACCENT)
+                                )
+                                sessionState == "expired" -> Text(
+                                    "登录已过期，点 ⋮ 重新登录", fontSize = 10.sp, color = Color(0xFFB3261E)
+                                )
+                                else -> {
+                                    val label = shownSnapshot?.semesterLabel ?: "还没有学期数据"
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        // 做成胶囊，一眼就能看出这里可以点
+                                        Surface(
+                                            shape = RoundedCornerShape(999.dp),
+                                            color = if (historyMode) Color(Palette.ACCENT) else Color(Palette.ACCENT_SOFT),
+                                            modifier = Modifier
+                                                .padding(top = 2.dp)
+                                                .clickableNoRipple { showTermPicker = true }
+                                        ) {
+                                            Row(
+                                                Modifier.padding(horizontal = 9.dp, vertical = 4.dp),
+                                                verticalAlignment = Alignment.CenterVertically
+                                            ) {
+                                                Text(
+                                                    label,
+                                                    fontSize = 11.5.sp,
+                                                    fontWeight = FontWeight.Medium,
+                                                    color = if (historyMode) Color.White else Color(Palette.ACCENT)
+                                                )
+                                                Spacer(Modifier.width(3.dp))
+                                                Text(
+                                                    "▾",
+                                                    fontSize = 9.sp,
+                                                    color = if (historyMode) Color.White else Color(Palette.ACCENT)
+                                                )
+                                            }
+                                        }
+                                        if (monday != null) {
+                                            Spacer(Modifier.width(6.dp))
+                                            Text(
+                                                monday.format(MMDD) + " 起",
+                                                fontSize = 9.5.sp,
+                                                color = Color(Palette.TEXT_MUTED)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                         // 翻到别的周时给一个回本周的入口
                         val nowWeek = Store.currentWeek(ctx)
@@ -428,6 +466,50 @@ private fun AppScreen() {
         Spacer(Modifier.height(6.dp))
         BottomNav(current = tab, onSelect = { tab = it })
     }
+    if (showWeekPicker) {
+        val maxWeek = (shownSnapshot?.courses?.maxOfOrNull { c -> c.weekList.maxOrNull() ?: 0 } ?: 0)
+            .coerceAtLeast(Store.currentWeek(ctx))
+            .coerceAtLeast(16)
+            .coerceAtMost(MAX_WEEKS)
+        AlertDialog(
+            onDismissRequest = { showWeekPicker = false },
+            title = { Text("跳到第几周", fontSize = 17.sp) },
+            text = {
+                androidx.compose.foundation.lazy.grid.LazyVerticalGrid(
+                    columns = androidx.compose.foundation.lazy.grid.GridCells.Fixed(5),
+                    modifier = Modifier.heightIn(max = 320.dp)
+                ) {
+                    items(maxWeek) { index ->
+                        val w = index + 1
+                        val selected = pagerState.currentPage == index
+                        Box(
+                            Modifier
+                                .padding(4.dp)
+                                .height(40.dp)
+                                .background(
+                                    if (selected) Color(Palette.ACCENT) else Color(Palette.ACCENT_SOFT),
+                                    RoundedCornerShape(10.dp)
+                                )
+                                .clickableNoRipple {
+                                    showWeekPicker = false
+                                    scope.launch { pagerState.animateScrollToPage(index) }
+                                },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                "$w",
+                                fontSize = 13.sp,
+                                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selected) Color.White else Color(Palette.ACCENT)
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showWeekPicker = false }) { Text("关闭") } }
+        )
+    }
+
     if (showTermPicker) {
         val currentKey = snapshot?.let { Store.termKey(it.xnm, it.xqm) }
         val options = ArrayList<Pair<String, String>>()
