@@ -25,7 +25,7 @@ android {
         applicationId = "io.github.rr5201314.liteschedule"
         minSdk = 26
         targetSdk = 35
-        versionCode = 4
+        versionCode = 6
         versionName = "0.2.2"
     }
 
