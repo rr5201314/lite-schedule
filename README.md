@@ -59,6 +59,16 @@ keyPassword=******
 
 没有这个文件时，release 会退回 debug 签名。
 
+## 发版
+
+新版本发布后，已安装的用户会自动收到更新提示。发版走脚本：
+
+```bash
+node tools/release.mjs 0.2.1 "这一版改了什么"
+```
+
+脚本会改版本号、更新根目录 `version.json`（App 的更新检查读它）、编译、提交打 tag、发布 Release。
+
 ## 目录
 
 ```
