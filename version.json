@@ -1,7 +1,7 @@
 {
-  "version": "0.3.0",
-  "tag": "v0.3.0",
-  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.3.0",
-  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.3.0/lite-schedule-0.3.0.apk",
-  "notes": "登录后可一次拉取所有学期课表并存档，历史学期不会丢；点标题下的学期名可随时切换查看。"
+  "version": "0.3.1",
+  "tag": "v0.3.1",
+  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.3.1",
+  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.3.1/lite-schedule-0.3.1.apk",
+  "notes": "拉取历史学期改为按入学年份收窄、跳过早于入学的年份，3 个一批并发请求，速度明显变快。"
 }
