@@ -627,7 +627,22 @@ private fun WeekGrid(
     modifier: Modifier = Modifier,
     onCourseClick: (Course) -> Unit = {},
 ) {
-    val maxSection = snapshot?.maxSection ?: 12
+    // 本地没数据时给个明确指引，别让用户对着空白格子
+    if (snapshot == null || snapshot.courses.isEmpty()) {
+        Box(modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                Text("还没有课表数据", fontSize = 14.sp, color = Color(Palette.TEXT_PRIMARY))
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    "点右上角 ⋮ → 登录教务，完成后会自动同步",
+                    fontSize = 11.sp,
+                    color = Color(Palette.TEXT_MUTED)
+                )
+            }
+        }
+        return
+    }
+    val maxSection = snapshot.maxSection
     BoxWithConstraints(modifier) {
         val rowHeight = (maxHeight / maxSection.toFloat()).coerceAtLeast(34.dp)
         val gridHeight: Dp = rowHeight * maxSection.toFloat()

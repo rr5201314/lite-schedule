@@ -1,7 +1,7 @@
 {
-  "version": "0.2.1",
-  "tag": "v0.2.1",
-  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.2.1",
-  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.2.1/lite-schedule-0.2.1.apk",
-  "notes": "更新检查支持国内镜像（jsDelivr），GitHub API 不通时也能提示新版本。"
+  "version": "0.2.2",
+  "tag": "v0.2.2",
+  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.2.2",
+  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.2.2/lite-schedule-0.2.2.apk",
+  "notes": "空课表时给出登录指引；加入系统备份规则，换机/重装可随系统备份恢复本地数据。"
 }
