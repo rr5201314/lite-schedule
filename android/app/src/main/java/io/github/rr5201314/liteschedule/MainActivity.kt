@@ -74,7 +74,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import io.github.rr5201314.liteschedule.data.CalendarResolver
 import io.github.rr5201314.liteschedule.data.CampusFeed
 import io.github.rr5201314.liteschedule.data.Course
+import io.github.rr5201314.liteschedule.BuildConfig
 import io.github.rr5201314.liteschedule.data.SessionKeeper
+import io.github.rr5201314.liteschedule.data.UpdateChecker
+import io.github.rr5201314.liteschedule.data.UpdateInfo
 import io.github.rr5201314.liteschedule.data.Snapshot
 import io.github.rr5201314.liteschedule.data.Store
 import io.github.rr5201314.liteschedule.login.LoginActivity
@@ -134,6 +137,8 @@ private fun AppScreen() {
     var syncing by remember { mutableStateOf(false) }
     var week1 by remember { mutableStateOf(Store.getWeek1(ctx)) }
     var sessionState by remember { mutableStateOf(Store.getSessionState(ctx)) }
+    var updateInfo by remember { mutableStateOf<UpdateInfo?>(null) }
+    var checkingUpdate by remember { mutableStateOf(false) }
     val lifecycleOwner = LocalLifecycleOwner.current
 
     val today = LocalDate.now()
@@ -170,6 +175,11 @@ private fun AppScreen() {
             SessionKeeper.checkNow(ctx)
             sessionState = Store.getSessionState(ctx)
         }
+    }
+
+    // 检查更新：6 小时内只查一次，发现新版本弹窗
+    LaunchedEffect(Unit) {
+        UpdateChecker.checkForUpdate(ctx)?.let { updateInfo = it }
     }
 
     // 校园公告：启动一次；进入公告页再拉；前台每 10 分钟自动刷新
@@ -309,6 +319,21 @@ private fun AppScreen() {
                                     menuOpen = false
                                     runSync()
                                 })
+                                DropdownMenuItem(text = { Text(if (checkingUpdate) "检查中…" else "检查更新") }, onClick = {
+                                    menuOpen = false
+                                    if (!checkingUpdate) {
+                                        checkingUpdate = true
+                                        scope.launch {
+                                            val info = UpdateChecker.checkForUpdate(ctx, force = true)
+                                            checkingUpdate = false
+                                            if (info != null) {
+                                                updateInfo = info
+                                            } else {
+                                                Toast.makeText(ctx, "已是最新版本 v" + UpdateChecker.currentVersion(), Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                    }
+                                })
                                 DropdownMenuItem(text = { Text("校准当前周") }, onClick = {
                                     menuOpen = false; showCalibrate = true
                                 })
@@ -374,6 +399,46 @@ private fun AppScreen() {
         Spacer(Modifier.height(6.dp))
         BottomNav(current = tab, onSelect = { tab = it })
     }
+    updateInfo?.let { info ->
+        AlertDialog(
+            onDismissRequest = { updateInfo = null },
+            title = { Text("发现新版本 ${info.tag}", fontSize = 17.sp) },
+            text = {
+                Column(Modifier.heightIn(max = 340.dp).verticalScroll(rememberScrollState())) {
+                    Text(
+                        "当前 v${BuildConfig.VERSION_NAME}  →  最新 v${info.version}",
+                        fontSize = 12.sp,
+                        color = Color(Palette.TEXT_SECONDARY)
+                    )
+                    if (info.notes.isNotBlank()) {
+                        Spacer(Modifier.height(8.dp))
+                        Text(
+                            info.notes.take(600),
+                            fontSize = 12.sp,
+                            lineHeight = 18.sp,
+                            color = Color(Palette.TEXT_PRIMARY)
+                        )
+                    }
+                }
+            },
+            confirmButton = {
+                TextButton(onClick = {
+                    openUrl(ctx, info.apkUrl.ifBlank { info.releaseUrl })
+                    updateInfo = null
+                }) { Text("去下载") }
+            },
+            dismissButton = {
+                Row {
+                    TextButton(onClick = {
+                        Store.setSkippedVersion(ctx, info.version)
+                        updateInfo = null
+                    }) { Text("跳过此版") }
+                    TextButton(onClick = { updateInfo = null }) { Text("以后再说") }
+                }
+            }
+        )
+    }
+
     detailCourse?.let { course ->
         AlertDialog(
             onDismissRequest = { detailCourse = null },
