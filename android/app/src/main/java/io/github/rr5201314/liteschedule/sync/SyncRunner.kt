@@ -7,9 +7,12 @@ import io.github.rr5201314.liteschedule.data.Diff
 import io.github.rr5201314.liteschedule.data.Period
 import io.github.rr5201314.liteschedule.data.Store
 import io.github.rr5201314.liteschedule.data.ZfClient
+import io.github.rr5201314.liteschedule.data.ZfParser
 import io.github.rr5201314.liteschedule.notify.Notifier
 import io.github.rr5201314.liteschedule.widget.TodayWidgetProvider
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.async
 import kotlinx.coroutines.withContext
 
 /**
@@ -67,28 +70,64 @@ object SyncRunner {
     }
 
     /**
-     * 把所有学期的课表一次性拉回来存档（登录后跑一次就够，之后只更新当前学期）。
-     * 返回 (成功保存的学期数, 提示文案)。
+     * 把所有学期的课表一次性拉回来存档。
+     *
+     * 教务没有「全部学期」接口：学年下拉是服务端渲染的年份列表，学期只有 3/12/16 三个值，
+     * 所以只能按 (学年, 学期) 组合逐个查。这里做了三件事把请求压到最少：
+     * 1. 从学号前四位推断入学年份，只从入学那年开始查；
+     * 2. 不查晚于当前学期的组合；
+     * 3. 已经存档过的学期跳过（force = true 时重查）。
      */
-    suspend fun syncAllSemesters(ctx: Context): Pair<Int, String> = withContext(Dispatchers.IO) {
-        val cookie = Store.getCookie(ctx) ?: return@withContext 0 to "还没登录教务"
-        runCatching {
-            val page = ZfClient.get(cookie, ZfClient.KB_PAGE)
-            val all = ZfClient.parseTermOptions(page)
-            if (all.isEmpty()) return@runCatching 0 to "没解析到学期列表"
+    suspend fun syncAllSemesters(ctx: Context, force: Boolean = false): Pair<Int, String> =
+        withContext(Dispatchers.IO) {
+            val cookie = Store.getCookie(ctx) ?: return@withContext 0 to "还没登录教务"
+            runCatching {
+                val page = ZfClient.get(cookie, ZfClient.KB_PAGE)
+                val surnameYears = ZfClient.parseTermOptions(page).map { it.first }.distinct()
 
-            // 只回看最近 6 年，避免一次打上百个请求
-            val thisYear = java.time.LocalDate.now().year
-            val terms = all.filter { (y, _) -> y.toIntOrNull()?.let { it >= thisYear - 6 } == true }
-            val periodsCache = mutableMapOf<String, List<Period>>()
-            var saved = 0
-            for ((y, t) in terms) {
-                val snap = runCatching { ZfClient.fetchTimetableFor(cookie, y, t, periodsCache) }.getOrNull() ?: continue
-                Store.upsertArchive(ctx, snap)
-                saved++
-            }
-            saved to "已保存 $saved 个学期的课表"
-        }.getOrElse { 0 to ("拉取失败：" + (it.message ?: "未知错误")) }
-    }
+                val currentSnap = Store.loadSnapshot(ctx)
+                val current = currentSnap?.let { it.xnm to it.xqm } ?: ZfParser.parseCurrentTerm(page)
+                val enrollYear = currentSnap?.studentId?.take(4)?.toIntOrNull()
+                    ?: surnameYears.minOrNull()?.toIntOrNull()
+                    ?: (java.time.LocalDate.now().year - 6)
 
+                fun termRank(qm: String): Int = when (qm) {
+                    "3" -> 0; "12" -> 1; "16" -> 2; else -> 3
+                }
+                val currentPair = current?.let { (y, q) -> (y.toIntOrNull() ?: 0) to termRank(q) }
+
+                val known = Store.loadArchive(ctx).map { Store.termKey(it.xnm, it.xqm) }.toSet()
+                val years = surnameYears.mapNotNull { it.toIntOrNull() }
+                    .filter { it >= enrollYear }
+                    .filter { y -> currentPair == null || y <= currentPair.first }
+                    .ifEmpty { (enrollYear..java.time.LocalDate.now().year).toList() }
+
+                val terms = years.flatMap { y -> listOf("3", "12", "16").map { t -> y.toString() to t } }
+                    .filter { (y, t) ->
+                        val cur = currentPair ?: return@filter true
+                        val yy = y.toIntOrNull() ?: 0
+                        val rr = termRank(t)
+                        yy < cur.first || (yy == cur.first && rr <= cur.second)
+                    }
+                    .filter { (y, t) -> force || Store.termKey(y, t) !in known }
+
+                if (terms.isEmpty()) return@runCatching 0 to "所有学期都已存档"
+
+                val periodsCache = java.util.Collections.synchronizedMap(mutableMapOf<String, List<Period>>())
+                var saved = 0
+                // 每批 3 个并发，够快又不会把教务打疼
+                terms.chunked(3).forEach { batch ->
+                    val results = batch.map { (y, t) ->
+                        async(Dispatchers.IO) { ZfClient.fetchTimetableFor(cookie, y, t, periodsCache) }
+                    }.map { it.await() }
+                    results.filterNotNull().forEach { snap ->
+                        Store.upsertArchive(ctx, snap)
+                        saved++
+                    }
+                }
+                val skipped = terms.size - saved
+                val tail = if (skipped > 0) "（$skipped 个学期没课）" else ""
+                saved to "已保存 $saved 个学期的课表$tail"
+            }.getOrElse { 0 to ("拉取失败：" + (it.message ?: "未知错误")) }
+        }
 }
