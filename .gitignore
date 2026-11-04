@@ -23,3 +23,6 @@ Thumbs.db
 *.log
 
 build-out/
+
+# 临时脚本与下载缓存
+tmp/
