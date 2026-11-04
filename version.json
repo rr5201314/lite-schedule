@@ -1,7 +1,7 @@
 {
-  "version": "0.2.2",
-  "tag": "v0.2.2",
-  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.2.2",
-  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.2.2/lite-schedule-0.2.2.apk",
-  "notes": "空课表时给出登录指引；加入系统备份规则；更新检查改用 jsDelivr @latest，发版后立刻能查到新版本。"
+  "version": "0.3.0",
+  "tag": "v0.3.0",
+  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.3.0",
+  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.3.0/lite-schedule-0.3.0.apk",
+  "notes": "登录后可一次拉取所有学期课表并存档，历史学期不会丢；点标题下的学期名可随时切换查看。"
 }
