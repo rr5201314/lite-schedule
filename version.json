@@ -1,7 +1,7 @@
 {
-  "version": "0.3.1",
-  "tag": "v0.3.1",
-  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.3.1",
-  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.3.1/lite-schedule-0.3.1.apk",
-  "notes": "拉取历史学期改为按入学年份收窄、跳过早于入学的年份，3 个一批并发请求，速度明显变快。"
+  "version": "0.3.2",
+  "tag": "v0.3.2",
+  "url": "https://github.com/rr5201314/lite-schedule/releases/tag/v0.3.2",
+  "apk": "https://github.com/rr5201314/lite-schedule/releases/download/v0.3.2/lite-schedule-0.3.2.apk",
+  "notes": "学期选择改成胶囊按钮，点击周数可直接跳转到指定周；历史学期按时间从近到远排序。"
 }
