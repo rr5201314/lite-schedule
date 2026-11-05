@@ -26,6 +26,18 @@ const sh = (cmd, cwd = root) => {
   execSync(cmd, { cwd, stdio: "inherit", shell: "cmd.exe" });
 };
 
+// 0) 工作区必须是干净的，避免把零散改动混进 release 提交
+try {
+  const dirty = execSync("git status --porcelain", { cwd: root }).toString().trim();
+  if (dirty) {
+    console.error("工作区有未提交改动，先 commit 再发版: " + dirty);
+    process.exit(1);
+  }
+} catch (e) {
+  console.error("检查 git 状态失败:", e.message);
+  process.exit(1);
+}
+
 // 1) 版本号
 const gradlePath = join(root, "android/app/build.gradle.kts");
 let gradle = readFileSync(gradlePath, "utf8");
@@ -63,6 +75,8 @@ console.log(`APK -> ${outApk}`);
 // 5) 提交 + tag
 sh(`git add -A && git commit -m "release: v${version}" && git tag v${version} && git push && git push origin v${version}`);
 
-// 6) Release
-sh(`gh release create v${version} "${outApk}" --title "轻课表 v${version}" --notes "${notes.replace(/"/g, '\\"')}"`);
+// 6) Release（备注写文件，避免中文和引号在 cmd 里被吃掉）
+const notesFile = join(root, "tmp", `release-notes-${version}.md`);
+writeFileSync(notesFile, notes + String.fromCharCode(10), "utf8");
+sh(`gh release create v${version} "${outApk}" --title "轻课表 v${version}" --notes-file "${notesFile}"`);
 console.log(`发布完成: https://github.com/${repo}/releases/tag/v${version}`);
